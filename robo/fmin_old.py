@@ -17,6 +17,7 @@ from robo.acquisition.log_ei import LogEI
 from robo.maximizers import cmaes, direct, grid_search, stochastic_local_search
 from robo.priors.default_priors import DefaultPrior
 from robo.solver.bayesian_optimization import BayesianOptimization
+#from mybo import BayesianOptimization
 from robo.task.base_task import BaseTask
 from robo.solver.fabolas import Fabolas
 from robo.priors.env_priors import EnvPrior
@@ -33,7 +34,9 @@ def fmin(objective_func,
         X_upper,
         num_iterations=30,
         maximizer="direct",
-        acquisition="LogEI"):
+        acquisition="LogEI",
+        initX=None,
+        initY=None):
 
     assert X_upper.shape[0] == X_lower.shape[0]
 
@@ -107,8 +110,10 @@ def fmin(objective_func,
                               maximize_func=max_fkt,
                               task=task)
 
-    best_x, f_min = bo.run(num_iterations)
-    return task.retransform(best_x), f_min
+
+
+    best_x, f_min = bo.run(num_iterations, X=initX, Y=initY)
+    return task.retransform(best_x), f_min, model, acquisition_func, max_fkt
 
 
 
@@ -119,7 +124,9 @@ def fabolas_fmin(objective_func,
                  n_init=40,
                  burnin=100,
                  chain_length=200,
-                 Nb=50):
+                 Nb=50,
+                 initX=None,
+                 initY=None):
     """
     Interface to Fabolas [1] which models loss and training time as a
     function of dataset size and automatically trades off high information
@@ -270,6 +277,6 @@ def fabolas_fmin(objective_func,
                   task=task,
                   initial_points=n_init,
                   incumbent_estimation=rec)
-    x_best = bo.run(num_iterations)
+    best_x, f_min = bo.run(num_iterations, X=initX, Y=initY)
                      
-    return task.retransform(x_best)
+    return task.retransform(best_x), f_min, model, acquisition_func, maximizer

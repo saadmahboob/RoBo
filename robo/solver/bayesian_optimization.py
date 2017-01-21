@@ -163,11 +163,20 @@ class BayesianOptimization(BaseSolver):
                                         acquisition_value=0)
                     self.save_json(i)
 
+            #print self.X
+            #print self.Y
+
         else:
             self.X = X
             self.Y = Y
             self.time_func_eval = np.zeros([self.X.shape[0]])
             self.time_overhead = np.zeros([self.X.shape[0]])
+            self.init_points = X.shape[0]
+
+            print X.shape, Y.shape
+
+            for i in range(Y.shape[0]):
+                print "Score:", Y[i][0], X[i]
 
 #             best = np.argmin(Y)
 #             incumbent = X[best]
@@ -176,7 +185,8 @@ class BayesianOptimization(BaseSolver):
 #             self.incumbent_values.append(incumbent_value[np.newaxis, :])
 #             self.runtime.append(time.time() - self.start_time)
 
-        for it in range(self.init_points, num_iterations):
+        it = self.init_points
+        while it < num_iterations:
             logger.info("Start iteration %d ... ", it)
 
             start_time = time.time()
@@ -186,57 +196,64 @@ class BayesianOptimization(BaseSolver):
             else:
                 do_optimize = False
 
-            new_x = self.choose_next(self.X, self.Y, do_optimize)
+            try:
+                new_x = self.choose_next(self.X, self.Y, do_optimize)
 
-            # Estimate current incumbent
-            start_time_inc = time.time()
-            startpoints = init_random_uniform(self.task.X_lower,
-                                              self.task.X_upper,
-                                              self.n_restarts)
-            self.incumbent, self.incumbent_value = \
-                    self.estimator.estimate_incumbent(startpoints)
+                # Estimate current incumbent
+                start_time_inc = time.time()
+                startpoints = init_random_uniform(self.task.X_lower,
+                                                  self.task.X_upper,
+                                                  self.n_restarts)
+                self.incumbent, self.incumbent_value = \
+                        self.estimator.estimate_incumbent(startpoints)
 
-            self.incumbents.append(self.incumbent)
-            self.incumbent_values.append(self.incumbent_value)
+                self.incumbents.append(self.incumbent)
+                self.incumbent_values.append(self.incumbent_value)
 
-            logger.info("New incumbent %s found in %f seconds with "
-                        "estimated performance %f",
-                        str(self.incumbent), time.time() - start_time_inc,
-                        self.incumbent_value)
+                logger.info("New incumbent %s found in %f seconds with "
+                            "estimated performance %f",
+                            str(self.incumbent), time.time() - start_time_inc,
+                            self.incumbent_value)
 
-            time_overhead = time.time() - start_time
-            self.time_overhead = np.append(self.time_overhead,
-                                           np.array([time_overhead]))
+                time_overhead = time.time() - start_time
+                self.time_overhead = np.append(self.time_overhead,
+                                               np.array([time_overhead]))
 
-            logger.info("Optimization overhead was %f seconds" %
-                            (self.time_overhead[-1]))
+                logger.info("Optimization overhead was %f seconds" %
+                                (self.time_overhead[-1]))
 
-            logger.info("Evaluate candidate %s" % (str(new_x)))
-            start_time = time.time()
-            new_y = self.task.evaluate(new_x)
-            time_func_eval = time.time() - start_time
-            self.time_func_eval = np.append(self.time_func_eval,
-                                            np.array([time_func_eval]))
+                logger.info("Evaluate candidate %s" % (str(new_x)))
+                start_time = time.time()
+                new_y = self.task.evaluate(new_x)
+                time_func_eval = time.time() - start_time
+                self.time_func_eval = np.append(self.time_func_eval,
+                                                np.array([time_func_eval]))
 
-            logger.info("Configuration achieved a performance of %f " %
-                        (new_y[0, 0]))
+                logger.info("Configuration achieved a performance of %f " %
+                            (new_y[0, 0]))
 
-            logger.info("Evaluation of this configuration took %f seconds" %
-                        (self.time_func_eval[-1]))
+                logger.info("Evaluation of this configuration took %f seconds" %
+                            (self.time_func_eval[-1]))
 
-            # Update the data
-            self.X = np.append(self.X, new_x, axis=0)
-            self.Y = np.append(self.Y, new_y, axis=0)
+                # Update the data
+                self.X = np.append(self.X, new_x, axis=0)
+                self.Y = np.append(self.Y, new_y, axis=0)
 
-            self.runtime.append(time.time() - self.start_time)
+                self.runtime.append(time.time() - self.start_time)
 
-            if self.save_dir is not None and (it) % self.num_save == 0:
-                hypers = self.model.hypers
-                self.save_iteration(
-                    it,
-                    hyperparameters=hypers,
-                    acquisition_value=self.acquisition_func(new_x))
-                self.save_json(it)
+                if self.save_dir is not None and (it) % self.num_save == 0:
+                    hypers = self.model.hypers
+                    self.save_iteration(
+                        it,
+                        hyperparameters=hypers,
+                        acquisition_value=self.acquisition_func(new_x))
+                    self.save_json(it)
+
+                it += 1
+            except KeyboardInterrupt:
+                raise
+            except:
+                print "experiment failed, retrying"
 
         # TODO: Retrain model and then return the incumbent
         logger.info("Return %s as incumbent with predicted performance %f" %
