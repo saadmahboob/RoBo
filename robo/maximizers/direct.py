@@ -10,7 +10,6 @@ import numpy as np
 
 from robo.maximizers.base_maximizer import BaseMaximizer
 
-
 class Direct(BaseMaximizer):
 
     def __init__(self, objective_function, X_lower, X_upper,
