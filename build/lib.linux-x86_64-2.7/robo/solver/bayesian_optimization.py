@@ -251,7 +251,7 @@ class BayesianOptimization(BaseSolver):
 
                 it += 1
             except KeyboardInterrupt:
-                raise
+                raise Exception
             except:
                 print "experiment failed, retrying"
 

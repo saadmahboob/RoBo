@@ -37,7 +37,8 @@ def fmin(objective_func,
 		maximizer="direct",
 		acquisition="LogEI",
 		initX=None,
-		initY=None):
+		initY=None,
+		n_func_evals=4000, n_iters=500):
 
 	assert X_upper.shape[0] == X_lower.shape[0]
 
@@ -90,8 +91,7 @@ def fmin(objective_func,
 	if maximizer == "cmaes":
 		max_fkt = cmaes.CMAES(acquisition_func, task.X_lower, task.X_upper)
 	elif maximizer == "direct":
-		print "test"
-		max_fkt = direct.Direct(acquisition_func, task.X_lower, task.X_upper, n_func_evals=4000, n_iters=500) #default is n_func_evals=400, n_iters=200
+		max_fkt = direct.Direct(acquisition_func, task.X_lower, task.X_upper, n_func_evals=n_func_evals, n_iters=n_iters) #default is n_func_evals=400, n_iters=200
 	elif maximizer == "stochastic_local_search":
 		max_fkt = stochastic_local_search.StochasticLocalSearch(acquisition_func,
 													task.X_lower,
@@ -114,7 +114,6 @@ def fmin(objective_func,
 
 
 	if initX is not None:
-		print "init works"
 		initXcopy = []
 		for i in range(initX.shape[0]):
 			initXcopy.append(task.transform(initX[i]))
