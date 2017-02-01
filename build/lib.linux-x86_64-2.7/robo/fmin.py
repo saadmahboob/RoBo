@@ -29,101 +29,99 @@ from robo.acquisition.integrated_acquisition import IntegratedAcquisition
 
 logger = logging.getLogger(__name__)
 
+class Task(BaseTask):
+	def __init__(self, X_lower, X_upper, objective_fkt):
+		super(Task, self).__init__(X_lower, X_upper)
+		self.objective_function = objective_fkt
 
-def fmin(objective_func,
-		X_lower,
-		X_upper,
-		num_iterations=30,
-		maximizer="direct",
-		acquisition="LogEI",
-		initX=None,
-		initY=None,
-		n_func_evals=4000, n_iters=500):
 
-	assert X_upper.shape[0] == X_lower.shape[0]
 
-	class Task(BaseTask):
 
-		def __init__(self, X_lower, X_upper, objective_fkt):
-			super(Task, self).__init__(X_lower, X_upper)
-			self.objective_function = objective_fkt
+class Fmin:
+	def __init__(self, objective_func, X_lower, X_upper, maximizer="direct", acquisition="LogEI", n_func_evals=4000, n_iters=500):
+		print "working2"
+		self.objective_func = objective_func
+		self.X_lower = X_lower
+		self.X_upper = X_upper
 
-	task = Task(X_lower, X_upper, objective_func)
+		assert self.X_upper.shape[0] == self.X_lower.shape[0]
 
-	cov_amp = 2
+		self.task = Task(self.X_lower, self.X_upper, self.objective_func)
 
-	initial_ls = np.ones([task.n_dims])
-	exp_kernel = george.kernels.Matern52Kernel(initial_ls,
-											   ndim=task.n_dims)
-	kernel = cov_amp * exp_kernel
+		cov_amp = 2
 
-	prior = DefaultPrior(len(kernel) + 1)
+		initial_ls = np.ones([self.task.n_dims])
+		exp_kernel = george.kernels.Matern52Kernel(initial_ls,
+												   ndim=self.task.n_dims)
+		kernel = cov_amp * exp_kernel
 
-	n_hypers = 3 * len(kernel)
-	if n_hypers % 2 == 1:
-		n_hypers += 1
-	model = GaussianProcessMCMC(kernel, prior=prior,
-								n_hypers=n_hypers,
-								chain_length=200,
-								burnin_steps=100)
+		prior = DefaultPrior(len(kernel) + 1)
 
-	if acquisition == "EI":
-		a = EI(model, X_upper=task.X_upper, X_lower=task.X_lower)
-	elif acquisition == "LogEI":
-		a = LogEI(model, X_upper=task.X_upper, X_lower=task.X_lower)        
-	elif acquisition == "PI":
-		a = PI(model, X_upper=task.X_upper, X_lower=task.X_lower)
-	elif acquisition == "UCB":
-		a = LCB(model, X_upper=task.X_upper, X_lower=task.X_lower)
-	elif acquisition == "InformationGain":
-		a = InformationGain(model, X_upper=task.X_upper, X_lower=task.X_lower)
-	elif acquisition == "InformationGainMC":
-		a = InformationGainMC(model, X_upper=task.X_upper, X_lower=task.X_lower,)
-	else:
-		logger.error("ERROR: %s is not a"
-					"valid acquisition function!" % (acquisition))
-		return None
+		n_hypers = 3 * len(kernel)
+		if n_hypers % 2 == 1:
+			n_hypers += 1
+		self.model = GaussianProcessMCMC(kernel, prior=prior,
+									n_hypers=n_hypers,
+									chain_length=200,
+									burnin_steps=100)
+
+		if acquisition == "EI":
+			self.a = EI(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)
+		elif acquisition == "LogEI":
+			self.a = LogEI(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)        
+		elif acquisition == "PI":
+			self.a = PI(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)
+		elif acquisition == "UCB":
+			self.a = LCB(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)
+		elif acquisition == "InformationGain":
+			self.a = InformationGain(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)
+		elif acquisition == "InformationGainMC":
+			self.a = InformationGainMC(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower,)
+		else:
+			logger.error("ERROR: %s is not a"
+						"valid acquisition function!" % (acquisition))
+			return None
+			
+		self.acquisition_func = IntegratedAcquisition(self.model, self.a,
+												 self.task.X_lower,
+												 self.task.X_upper)        
+
+		if maximizer == "cmaes":
+			self.max_fkt = cmaes.CMAES(self.acquisition_func, self.task.X_lower, self.task.X_upper)
+		elif maximizer == "direct":
+			self.max_fkt = direct.Direct(self.acquisition_func, self.task.X_lower, self.task.X_upper, n_func_evals=n_func_evals, n_iters=n_iters) #default is n_func_evals=400, n_iters=200
+		elif maximizer == "stochastic_local_search":
+			self.max_fkt = stochastic_local_search.StochasticLocalSearch(self.acquisition_func,
+														self.task.X_lower,
+														self.task.X_upper)
+		elif maximizer == "grid_search":
+			self.max_fkt = grid_search.GridSearch(self.acquisition_func,
+											 self.task.X_lower,
+											 self.task.X_upper)
+		else:
+			logger.error(
+				"ERROR: %s is not a valid function"
+				"to maximize the acquisition function!" %
+				(acquisition))
+			return None
+
+		self.bo = BayesianOptimization(acquisition_func=self.acquisition_func,
+								  model=self.model,
+								  maximize_func=self.max_fkt,
+								  task=self.task)
+
+	def run(self, num_iterations=30,initX=None, initY=None):
+		if initX is not None:
+			initXcopy = []
+			for i in range(initX.shape[0]):
+				initXcopy.append(task.transform(initX[i]))
+			initX = np.array(initXcopy)
+			initY = np.array(initY)
+
+
 		
-	acquisition_func = IntegratedAcquisition(model, a,
-											 task.X_lower,
-											 task.X_upper)        
-
-	if maximizer == "cmaes":
-		max_fkt = cmaes.CMAES(acquisition_func, task.X_lower, task.X_upper)
-	elif maximizer == "direct":
-		max_fkt = direct.Direct(acquisition_func, task.X_lower, task.X_upper, n_func_evals=n_func_evals, n_iters=n_iters) #default is n_func_evals=400, n_iters=200
-	elif maximizer == "stochastic_local_search":
-		max_fkt = stochastic_local_search.StochasticLocalSearch(acquisition_func,
-													task.X_lower,
-													task.X_upper)
-	elif maximizer == "grid_search":
-		max_fkt = grid_search.GridSearch(acquisition_func,
-										 task.X_lower,
-										 task.X_upper)
-	else:
-		logger.error(
-			"ERROR: %s is not a valid function"
-			"to maximize the acquisition function!" %
-			(acquisition))
-		return None
-
-	bo = BayesianOptimization(acquisition_func=acquisition_func,
-							  model=model,
-							  maximize_func=max_fkt,
-							  task=task)
-
-
-	if initX is not None:
-		initXcopy = []
-		for i in range(initX.shape[0]):
-			initXcopy.append(task.transform(initX[i]))
-		initX = np.array(initXcopy)
-		initY = np.array(initY)
-
-
-	
-	best_x, f_min = bo.run(num_iterations, X=initX, Y=initY)
-	return task.retransform(best_x), f_min, model, acquisition_func, max_fkt
+		best_x, f_min = self.bo.run(num_iterations, X=initX, Y=initY)
+		return self.task.retransform(best_x), f_min, self.model, self.acquisition_func, self.max_fkt
 
 
 
