@@ -111,15 +111,17 @@ class Fmin:
 								  task=self.task)
 
 	def run(self, num_iterations=30,initX=None, initY=None):
+		print num_iterations
 		if initX is not None:
 			initXcopy = []
 			for i in range(initX.shape[0]):
-				initXcopy.append(task.transform(initX[i]))
+				initXcopy.append(self.task.transform(initX[i]))
 			initX = np.array(initXcopy)
 			initY = np.array(initY)
 
 
-		
+		print initX
+		print initY
 		best_x, f_min = self.bo.run(num_iterations, X=initX, Y=initY)
 		return self.task.retransform(best_x), f_min, self.model, self.acquisition_func, self.max_fkt
 
