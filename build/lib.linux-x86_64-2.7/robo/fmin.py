@@ -39,7 +39,6 @@ class Task(BaseTask):
 
 class Fmin:
 	def __init__(self, objective_func, X_lower, X_upper, maximizer="direct", acquisition="LogEI", n_func_evals=4000, n_iters=500):
-		print "working2"
 		self.objective_func = objective_func
 		self.X_lower = X_lower
 		self.X_upper = X_upper
@@ -72,7 +71,7 @@ class Fmin:
 		elif acquisition == "PI":
 			self.a = PI(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)
 		elif acquisition == "UCB":
-			self.a = LCB(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)
+			self.a = LCB(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower, par=0.1)
 		elif acquisition == "InformationGain":
 			self.a = InformationGain(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)
 		elif acquisition == "InformationGainMC":
@@ -111,7 +110,6 @@ class Fmin:
 								  task=self.task)
 
 	def run(self, num_iterations=30,initX=None, initY=None):
-		print num_iterations
 		if initX is not None:
 			initXcopy = []
 			for i in range(initX.shape[0]):
@@ -120,8 +118,6 @@ class Fmin:
 			initY = np.array(initY)
 
 
-		print initX
-		print initY
 		best_x, f_min = self.bo.run(num_iterations, X=initX, Y=initY)
 		return self.task.retransform(best_x), f_min, self.model, self.acquisition_func, self.max_fkt
 
