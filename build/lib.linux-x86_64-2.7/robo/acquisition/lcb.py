@@ -60,9 +60,11 @@ class LCB(BaseAcquisitionFunction):
         np.ndarray(1,D)
             Derivative of LCB at X (only if derivative=True)
         """
+        #print self.time
         mean, var = self.model.predict(X)
 
         # Minimize in f so we maximize the negative lower bound
+        k = np.sqrt(2*np.log( (((self.time)**(X.shape[1]/2.0 + 2))*(np.pi**2)) / (3.0*self.par) ))
         acq = - mean + self.par * np.sqrt(var)
         if derivative:
             dm, dv = self.model.predictive_gradients(X)
@@ -70,6 +72,7 @@ class LCB(BaseAcquisitionFunction):
             return acq, -grad
         else:
             return acq
+        self.time += 1
 
     def update(self, model):
         self.model = model

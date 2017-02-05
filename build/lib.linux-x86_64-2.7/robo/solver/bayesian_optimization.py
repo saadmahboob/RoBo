@@ -185,8 +185,10 @@ class BayesianOptimization(BaseSolver):
 #             self.incumbent_values.append(incumbent_value[np.newaxis, :])
 #             self.runtime.append(time.time() - self.start_time)
 
+        
         it = self.init_points
         while it < num_iterations:
+            self.acquisition_func.update_time(it)
             logger.info("Start iteration %d ... ", it)
 
             start_time = time.time()

@@ -58,6 +58,10 @@ class IntegratedAcquisition(BaseAcquisitionFunction):
 
         super(IntegratedAcquisition, self).__init__(model, X_lower, X_upper)
 
+    def update_time(self, new_time):
+        for estimator in self.estimators:
+            estimator.time = new_time
+
     def update(self, model, cost_model=None, **kwargs):
         '''
         Updates each acquisition function object if the models
@@ -122,7 +126,6 @@ class IntegratedAcquisition(BaseAcquisitionFunction):
 
         # Integrate over the acquisition values
         for i in range(self.model.n_hypers):
-            acquisition_values[i] = self.estimators[i](theta,
-                                                    derivative=derivative)
+            acquisition_values[i] = self.estimators[i](theta, derivative=derivative)
                                                  
         return np.array([[acquisition_values.mean()]])
