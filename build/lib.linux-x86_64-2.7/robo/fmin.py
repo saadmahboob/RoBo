@@ -12,6 +12,7 @@ from robo.acquisition.information_gain_mc import InformationGainMC
 from robo.acquisition.information_gain import InformationGain
 from robo.acquisition.ei import EI
 from robo.acquisition.lcb import LCB
+from robo.acquisition.lcb_gp import LCB_GP
 from robo.acquisition.pi import PI
 from robo.acquisition.log_ei import LogEI
 from robo.maximizers import cmaes, direct, grid_search, stochastic_local_search
@@ -38,7 +39,7 @@ class Task(BaseTask):
 
 
 class Fmin:
-	def __init__(self, objective_func, X_lower, X_upper, maximizer="direct", acquisition="LogEI", n_func_evals=4000, n_iters=500):
+	def __init__(self, objective_func, X_lower, X_upper, maximizer="direct", acquisition="LogEI", par=None, n_func_evals=4000, n_iters=500):
 		self.objective_func = objective_func
 		self.X_lower = X_lower
 		self.X_upper = X_upper
@@ -67,11 +68,22 @@ class Fmin:
 		if acquisition == "EI":
 			self.a = EI(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)
 		elif acquisition == "LogEI":
-			self.a = LogEI(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)        
+			if par is not None:
+				self.a = LogEI(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower, par=par)
+			else:
+				self.a = LogEI(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)        
 		elif acquisition == "PI":
 			self.a = PI(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)
 		elif acquisition == "UCB":
-			self.a = LCB(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower, par=0.1)
+			if par is not None:
+				self.a = LCB(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower, par=par)
+			else:
+				self.a = LCB(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower) 
+		elif acquisition == "UCB_GP":
+			if par is not None:
+				self.a = LCB_GP(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower, par=par)
+			else:
+				self.a = LCB_GP(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower) 
 		elif acquisition == "InformationGain":
 			self.a = InformationGain(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)
 		elif acquisition == "InformationGainMC":
@@ -81,9 +93,8 @@ class Fmin:
 						"valid acquisition function!" % (acquisition))
 			return None
 			
-		self.acquisition_func = IntegratedAcquisition(self.model, self.a,
-												 self.task.X_lower,
-												 self.task.X_upper)        
+		#self.acquisition_func = IntegratedAcquisition(self.model, self.a, self.task.X_lower, self.task.X_upper)
+		self.acquisition_func = self.a       
 
 		if maximizer == "cmaes":
 			self.max_fkt = cmaes.CMAES(self.acquisition_func, self.task.X_lower, self.task.X_upper)

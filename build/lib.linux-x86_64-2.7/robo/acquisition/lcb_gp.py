@@ -7,7 +7,7 @@ from robo.acquisition.base_acquisition import BaseAcquisitionFunction
 logger = logging.getLogger(__name__)
 
 
-class LCB(BaseAcquisitionFunction):
+class LCB_GP(BaseAcquisitionFunction):
 
     def __init__(self, model, X_lower, X_upper, par=0.1, **kwargs):
         r"""
@@ -36,7 +36,8 @@ class LCB(BaseAcquisitionFunction):
             and exploitation of the acquisition function. Default is 0.01
         """
         self.par = par
-        super(LCB, self).__init__(model, X_lower, X_upper)
+        super(LCB_GP, self).__init__(model, X_lower, X_upper)
+        self.time = 3
 
     def compute(self, X, derivative=False, **kwargs):
         """
@@ -64,7 +65,7 @@ class LCB(BaseAcquisitionFunction):
         mean, var = self.model.predict(X)
 
         # Minimize in f so we maximize the negative lower bound
-        k = self.par
+        k = np.sqrt(2*np.log( (((self.time)**(X.shape[1]/2.0 + 2))*(np.pi**2)) / (3.0*self.par) ))
         acq = - mean + k * np.sqrt(var)
         if derivative:
             dm, dv = self.model.predictive_gradients(X)
@@ -72,6 +73,7 @@ class LCB(BaseAcquisitionFunction):
             return acq, -grad
         else:
             return acq
+        self.time += 1
 
     def update(self, model):
         self.model = model
