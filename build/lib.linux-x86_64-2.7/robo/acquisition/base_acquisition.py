@@ -27,9 +27,11 @@ class BaseAcquisitionFunction(object):
         self.model = model
         self.X_lower = X_lower
         self.X_upper = X_upper
-        self.time = 3
 
         assert np.any(self.X_lower < self.X_upper)
+
+    def update_time(self, it):
+        pass #do nothing here
 
     def update(self, model):
         """
@@ -83,7 +85,7 @@ class BaseAcquisitionFunction(object):
                 acq[idx, :] = -np.finfo(np.float).max
             return acq
 
-    def compute(self, X, time, derivative=False):
+    def compute(self, X, derivative=False):
         """
         Computes the acquisition value for a given point X. This function has
         to be overwritten in a derived class.

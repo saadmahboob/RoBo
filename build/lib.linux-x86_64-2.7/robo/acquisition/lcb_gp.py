@@ -39,6 +39,9 @@ class LCB_GP(BaseAcquisitionFunction):
         super(LCB_GP, self).__init__(model, X_lower, X_upper)
         self.time = 3
 
+    def update_time(self, new_time):
+        self.time = new_time
+
     def compute(self, X, derivative=False, **kwargs):
         """
         Computes the LCB acquisition value and its derivatives.
@@ -61,7 +64,6 @@ class LCB_GP(BaseAcquisitionFunction):
         np.ndarray(1,D)
             Derivative of LCB at X (only if derivative=True)
         """
-        #print self.time
         mean, var = self.model.predict(X)
 
         # Minimize in f so we maximize the negative lower bound
@@ -73,7 +75,6 @@ class LCB_GP(BaseAcquisitionFunction):
             return acq, -grad
         else:
             return acq
-        self.time += 1
 
     def update(self, model):
         self.model = model
