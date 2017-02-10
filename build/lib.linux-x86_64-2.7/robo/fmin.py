@@ -8,6 +8,9 @@ import george
 import numpy as np
 
 from robo.models.gaussian_process_mcmc import GaussianProcessMCMC
+from robo.models.gaussian_process import GaussianProcess
+from robo.models.gpy_model import GPyModel
+
 from robo.acquisition.information_gain_mc import InformationGainMC
 from robo.acquisition.information_gain import InformationGain
 from robo.acquisition.ei import EI
@@ -51,7 +54,7 @@ class Fmin:
 		cov_amp = 2
 
 		initial_ls = np.ones([self.task.n_dims])
-		exp_kernel = george.kernels.Matern52Kernel(initial_ls,
+		exp_kernel = george.kernels.Matern32Kernel(initial_ls,
 												   ndim=self.task.n_dims)
 		kernel = cov_amp * exp_kernel
 
@@ -60,13 +63,17 @@ class Fmin:
 		n_hypers = 3 * len(kernel)
 		if n_hypers % 2 == 1:
 			n_hypers += 1
-		self.model = GaussianProcessMCMC(kernel, prior=prior,
-									n_hypers=n_hypers,
-									chain_length=200,
-									burnin_steps=100)
+		self.model = GaussianProcessMCMC(kernel, prior=prior, n_hypers=n_hypers, chain_length=2000, burnin_steps=500)
+		#self.model = GaussianProcess(kernel, prior=prior, dim=self.X_lower.shape[0], noise=1e-10)
+		#self.model = GPyModel(kernel)
+
+		#MAP ESTMIATE
 
 		if acquisition == "EI":
-			self.a = EI(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)
+			if par is not None:
+				self.a = EI(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower, par=par)
+			else:
+				self.a = EI(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower)
 		elif acquisition == "LogEI":
 			if par is not None:
 				self.a = LogEI(self.model, X_upper=self.task.X_upper, X_lower=self.task.X_lower, par=par)
