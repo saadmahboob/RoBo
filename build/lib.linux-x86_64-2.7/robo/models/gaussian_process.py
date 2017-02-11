@@ -202,7 +202,7 @@ class GaussianProcess(BaseModel):
         return var
 
     def predict(self, X, **kwargs):
-        r"""
+        """
         Returns the predictive mean and variance of the objective function at
         the specified test point.
 

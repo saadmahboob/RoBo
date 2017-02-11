@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class GPyModel(BaseModel):
 
-    def __init__(self, kernel, noise_variance=None, num_restarts=10, *args, **kwargs):
+    def __init__(self, kernel, noise_variance=1e-3, num_restarts=10, *args, **kwargs):
         """
         Interface to the GPy library. The GP hyperparameter are
         obtained by optimizing the marginal loglikelihood.
@@ -62,8 +62,19 @@ class GPyModel(BaseModel):
         if X.size == 0 or Y.size == 0:
             return
 
+        bounds = [[0, 10], [0, 10], [0, 10], [0, 10], [-0.10, 0.10], [-0.10, 0.10], [-0.10, 0.10], [-0.10, 0.10], [-0.10, 0.10], [-0.10, 0.10]]
+        def func(x):
+            y = np.zeros(len(x))
+            for j in range(len(x)):
+                y[j] = (x[j]-bounds[j][0]) / (bounds[j][1] - bounds[j][0])
+            return y
+
+
+
+
+
         kern = deepcopy(self.kernel)
-        self.m = GPy.models.GPRegression(self.X, self.Y, kern)
+        self.m = GPy.models.GPRegression(self.X, self.Y, kern, Normalizer=func)
 
         if self.noise_variance is not None:
             logger.warning("Do not optimize noise use fix value of %f" % (self.noise_variance))

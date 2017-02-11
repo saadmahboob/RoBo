@@ -54,17 +54,21 @@ class Fmin:
 		cov_amp = 2
 
 		initial_ls = np.ones([self.task.n_dims])
-		exp_kernel = george.kernels.Matern32Kernel(initial_ls,
-												   ndim=self.task.n_dims)
+		exp_kernel = george.kernels.Matern32Kernel(initial_ls, ndim=self.task.n_dims)
 		kernel = cov_amp * exp_kernel
+		#kernel = GPy.kern.Matern52(input_dim=task.n_dims)
+		
 
 		prior = DefaultPrior(len(kernel) + 1)
 
 		n_hypers = 3 * len(kernel)
 		if n_hypers % 2 == 1:
 			n_hypers += 1
-		self.model = GaussianProcessMCMC(kernel, prior=prior, n_hypers=n_hypers, chain_length=2000, burnin_steps=500)
-		#self.model = GaussianProcess(kernel, prior=prior, dim=self.X_lower.shape[0], noise=1e-10)
+
+
+
+		#self.model = GaussianProcessMCMC(kernel, prior=prior, n_hypers=n_hypers, chain_length=500, burnin_steps=100)
+		self.model = GaussianProcess(kernel, prior=prior, dim=self.X_lower.shape[0], noise=1e-3)
 		#self.model = GPyModel(kernel)
 
 		#MAP ESTMIATE
